@@ -8,6 +8,8 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
+import tech.zaidaziz.assignmentimagesgrid.data.home.services.ApiService
+import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -27,6 +29,12 @@ class NetworkingModule {
             .baseUrl("https://acharyaprashant.org/")
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
+    }
+
+    @Provides
+    @Singleton
+    fun providesApiService(retrofitModule: Retrofit): ApiService {
+        return retrofitModule.create(ApiService::class.java)
     }
 
 }
