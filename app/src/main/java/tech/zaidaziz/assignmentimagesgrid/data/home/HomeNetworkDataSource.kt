@@ -14,21 +14,39 @@ class HomeNetworkDataSource @Inject constructor(
 ) {
 
     suspend fun getMediaCoverages() = apiService.getMediaCoverages()
-    suspend fun downloadImage(url: String): Bitmap? {
+
+    fun downloadImage(url: String): Bitmap? {
+        var connection: URLConnection? = null
+        var inputStream: InputStream? = null
         return try {
 
-            val connection = URL(url).openConnection()
+            connection = URL(url).openConnection()
             connection.useCaches = false
             connection.connect()
-            val inputStream = connection.getInputStream()
+            inputStream = connection.getInputStream()
             // save file to disk
             val bitmap = Bitmap.createBitmap(BitmapFactory.decodeStream(inputStream))
-            inputStream.close()
             bitmap
 
         } catch (e: Exception) {
             null
-        }
+        } finally {
+            inputStream?.close()
+            when (connection) {
+                is HttpURLConnection -> {
+                    connection.disconnect()
+                }
 
+                is HttpsURLConnection -> {
+                    connection.disconnect()
+                }
+            }
+        }
     }
+}
+
+fun printImageSize(bitmap: Bitmap, type: String) {
+    val width = bitmap.allocationByteCount / (1024 * 1024)
+    Log.d("HomeNetworkDataSource", "$type :$width ")
+    Log.d("HomeNetworkDataSource", "$type :${bitmap.width} ${bitmap.height}")
 }

@@ -49,15 +49,14 @@ class HomeRepository @Inject constructor(
             } else {
                 val bitmap = homeNetworkDataSource.downloadImage(thumbnailDetail.getUrl())
                 if (bitmap != null) {
-                    //                    homeLocalDataSource.saveThumbnail(thumbnailDetail, bitmap!!)
                     val scaledBitmap = Bitmap.createScaledBitmap(bitmap, size, size, true)
+                    homeLocalDataSource.saveThumbnail(thumbnailDetail.getThumbnailFileName(), bitmap)
                     thumbnailDetail.thumbnailBitmap = scaledBitmap.asImageBitmap()
                 }
             }
             thumbnailDetail.thumbnailBitmap
         }
     }
-
     fun refreshMediaCoverages() {
         mediaCoverages = null
     }
