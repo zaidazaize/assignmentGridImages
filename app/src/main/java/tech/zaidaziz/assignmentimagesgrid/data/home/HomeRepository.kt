@@ -18,6 +18,10 @@ class HomeRepository @Inject constructor(
 ) {
 
     private var mediaCoverages: List<ImageModel>? = null
+
+//    suspend fun getMediaCoveragesResponse(): Result<List<ImageModel>>{
+//
+//    }
     suspend fun getMediaCoverages(): List<ImageModel> {
         if (mediaCoverages == null) {
             withContext(Dispatchers.IO) {
