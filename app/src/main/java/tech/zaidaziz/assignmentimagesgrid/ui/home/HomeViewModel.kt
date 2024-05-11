@@ -1,10 +1,17 @@
 package tech.zaidaziz.assignmentimagesgrid.ui.home
 
+import android.util.Log
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
+import tech.zaidaziz.assignmentimagesgrid.data.home.HomeRepository
+import tech.zaidaziz.assignmentimagesgrid.data.home.models.ImageModel
 import javax.inject.Inject
 
 
-class HomeViewModel  @Inject constructor() : ViewModel() {
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     val homeRepository: HomeRepository
@@ -23,6 +30,10 @@ class HomeViewModel @Inject constructor(
 
     fun refreshMediaCoverages() {
         homeRepository.refreshMediaCoverages()
+    }
+
+    suspend fun getThumbnail(imageModel: ImageModel, size: Int): Boolean {
+        return homeRepository.getThumbNail(imageModel.thumbnail, size) != null
     }
 
 }

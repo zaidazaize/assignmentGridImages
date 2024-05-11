@@ -21,6 +21,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import tech.zaidaziz.assignmentimagesgrid.data.home.models.ImageModel
@@ -73,7 +74,6 @@ fun HomeScreen(
                     imageModel = mediaCoverages[index],
                     loadImage = loadImage,
                     size = size.value,
-                    scope = scope
                 )
                 //                val url = mediaCoverages[index].thumbnail.getUrl()
                 //                AsyncImage(model =url , contentDescription = mediaCoverages[index].title)
@@ -88,7 +88,43 @@ fun LoadImage(
     imageModel: ImageModel,
     loadImage: suspend (ImageModel, Int) -> Boolean,
     size: Int,
-    scope: CoroutineScope
 ) {
+    val imageBitmap = remember { mutableStateOf(imageModel.thumbnail.thumbnailBitmap) }
+
+    val scope = rememberCoroutineScope()
+
+    DisposableEffect(imageModel.id) {
+        var job : Job? = null
+        if (imageModel.thumbnail.thumbnailBitmap == null)
+            job = scope.launch {
+                val isdown = loadImage(imageModel, size)
+                if (isdown.not()) {
+                    return@launch
+                }
+                imageBitmap.value = imageModel.thumbnail.thumbnailBitmap
+            }
+        onDispose {
+            job?.cancel()
+        }
+    }
+
+    if (imageBitmap.value != null) {
+        Image(
+            painter = BitmapPainter(imageBitmap.value!!),
+            contentScale = ContentScale.Crop,
+            contentDescription = null,
+            modifier = Modifier
+                .fillMaxSize()
+                .aspectRatio(1f)
+        )
+    } else {
+        Image(
+            imageVector = Icons.Default.Face,
+            contentDescription = null,
+            modifier = Modifier
+                .fillMaxSize()
+                .aspectRatio(1f)
+        )
+    }
 
 }
