@@ -8,6 +8,8 @@ import android.net.NetworkInfo
 import android.util.Log
 import androidx.core.content.ContextCompat.getSystemService
 import dagger.hilt.android.qualifiers.ApplicationContext
+import retrofit2.Response
+import tech.zaidaziz.assignmentimagesgrid.data.home.models.ImageModel
 import tech.zaidaziz.assignmentimagesgrid.data.home.services.ApiService
 import java.io.File
 import java.io.InputStream
@@ -17,16 +19,22 @@ import java.net.URLConnection
 import javax.inject.Inject
 import javax.net.ssl.HttpsURLConnection
 
-class HomeNetworkDataSource @Inject constructor(
+interface HomeNetworkDataSource {
+
+    suspend fun getMediaCoverages(): Response<List<ImageModel>>
+    fun downloadImage(url: String): Bitmap?
+}
+
+class HomeNetworkDataSourceImpl @Inject constructor(
     val apiService: ApiService,
     @ApplicationContext
     private val applicationContext: Context
-) {
+) : HomeNetworkDataSource {
 
-    suspend fun getMediaCoverages() = apiService.getMediaCoverages()
+    override suspend fun getMediaCoverages() = apiService.getMediaCoverages()
 
 
-    fun downloadImage(url: String): Bitmap? {
+    override fun downloadImage(url: String): Bitmap? {
         var connection: URLConnection? = null
         var inputStream: InputStream? = null
         return try {

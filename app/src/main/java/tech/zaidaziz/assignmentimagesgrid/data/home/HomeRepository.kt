@@ -13,17 +13,29 @@ import tech.zaidaziz.assignmentimagesgrid.data.home.models.ThumbnailDetail
 import java.io.File
 import javax.inject.Inject
 
-class HomeRepository @Inject constructor(
+interface HomeRepository {
+    //    suspend fun getMediaCoveragesResponse(): Result<List<ImageModel>>{
+    //
+    //    }
+    suspend fun getMediaCoverages(): Result<List<ImageModel>>
+
+    suspend fun getThumbNail(thumbnailDetail: ThumbnailDetail, sizeGot: Int): ImageBitmap?
+
+    suspend fun getAllLocalThumbnailFileNames(): List<ThumbnailDetail>
+    fun refreshMediaCoverages()
+}
+
+class HomeRepositoryImpl @Inject constructor(
     private val homeNetworkDataSource: HomeNetworkDataSource,
     private val homeLocalDataSource: HomeLocalDataSource,
-) {
+) : HomeRepository {
 
     private var mediaCoverages: List<ImageModel>? = null
 
     //    suspend fun getMediaCoveragesResponse(): Result<List<ImageModel>>{
     //
     //    }
-    suspend fun getMediaCoverages(): Result<List<ImageModel>> {
+    override suspend fun getMediaCoverages(): Result<List<ImageModel>> {
        return  if (mediaCoverages == null) {
            val result =  withContext(Dispatchers.IO) {
                 val response = homeNetworkDataSource.getMediaCoverages()
@@ -40,7 +52,7 @@ class HomeRepository @Inject constructor(
         }
     }
 
-    suspend fun getThumbNail(thumbnailDetail: ThumbnailDetail, sizeGot: Int): ImageBitmap? {
+    override suspend fun getThumbNail(thumbnailDetail: ThumbnailDetail, sizeGot: Int): ImageBitmap? {
         if (thumbnailDetail.thumbnailBitmap != null) {
             return thumbnailDetail.thumbnailBitmap
         }
@@ -72,7 +84,7 @@ class HomeRepository @Inject constructor(
         }
     }
 
-    suspend fun getAllLocalThumbnailFileNames(): List<ThumbnailDetail> {
+    override suspend fun getAllLocalThumbnailFileNames(): List<ThumbnailDetail> {
         return withContext(Dispatchers.IO) {
             homeLocalDataSource.getLocalThumbnailFileNames().map {
                 ThumbnailDetail(id = it.split(".")[0])
@@ -80,7 +92,7 @@ class HomeRepository @Inject constructor(
         }
     }
 
-    fun refreshMediaCoverages() {
+    override fun refreshMediaCoverages() {
         mediaCoverages = null
     }
 

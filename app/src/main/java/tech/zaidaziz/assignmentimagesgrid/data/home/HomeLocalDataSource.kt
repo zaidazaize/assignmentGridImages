@@ -12,17 +12,29 @@ import java.io.File
 import javax.inject.Inject
 import javax.inject.Named
 
-class HomeLocalDataSource @Inject constructor(
+interface HomeLocalDataSource {
+
+    fun getSavedThumbnail(thumbnailFileName: String): File?
+    fun updateLocalThumbnailFiles()
+    fun refreshThumbnailFiles()
+
+    suspend fun getLocalThumbnailFileNames(): List<String>
+
+    // global scope is used here because the thumbnail is saved in the cache directory
+    fun saveThumbnail(fileName: String, bitmap: Bitmap)
+}
+
+class HomeLocalDataSourceImpl @Inject constructor(
     @ApplicationContext val context: Context,
     @Named(LOCAL_THUMBNAIL_DIR)
     private val thumbnailDir: File
-) {
+) : HomeLocalDataSource {
 
     val applicationScopeCoroutines =
         (context.applicationContext as MainApplication).applicationScopeCoroutines
 
     private var _localThumbnailFiles: Set<String> = emptySet()
-    fun getSavedThumbnail(thumbnailFileName: String): File? {
+    override fun getSavedThumbnail(thumbnailFileName: String): File? {
         // TODO: for more high performance utilize the _localThumbnailFiles set
         return try {
             val thumbnailFile = File(thumbnailDir, thumbnailFileName)
@@ -36,7 +48,7 @@ class HomeLocalDataSource @Inject constructor(
         //        else null
     }
 
-    private fun updateLocalThumbnailFiles() {
+    override fun updateLocalThumbnailFiles() {
         try {
             val files = thumbnailDir.listFiles()
             _localThumbnailFiles = files?.map { it.name }?.toSet() ?: emptySet()
@@ -45,11 +57,11 @@ class HomeLocalDataSource @Inject constructor(
         }
     }
 
-    fun refreshThumbnailFiles() {
+    override fun refreshThumbnailFiles() {
         updateLocalThumbnailFiles()
     }
 
-    suspend fun getLocalThumbnailFileNames(): List<String> {
+    override suspend fun getLocalThumbnailFileNames(): List<String> {
         return try {
             val files = thumbnailDir.listFiles()
             files?.map { it.name } ?: emptyList()
@@ -61,7 +73,7 @@ class HomeLocalDataSource @Inject constructor(
 
 
     // global scope is used here because the thumbnail is saved in the cache directory
-    fun saveThumbnail(fileName: String, bitmap: Bitmap) {
+    override fun saveThumbnail(fileName: String, bitmap: Bitmap) {
         applicationScopeCoroutines.launch(Dispatchers.IO) {
             try {
                 val thumbnailFile = File(thumbnailDir, fileName)
