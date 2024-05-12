@@ -26,6 +26,8 @@ data class ThumbnailDetail(
         return "$domain/$basePath/0/$key"
 
     }
+    @Transient
+    var thumbnailError : Boolean = false
     fun getThumbnailFileName(): String {
         return "$id.jpg"
     }

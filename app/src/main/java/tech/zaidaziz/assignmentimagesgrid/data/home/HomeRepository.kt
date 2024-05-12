@@ -49,6 +49,8 @@ class HomeRepository @Inject constructor(
                 val bitmap = decodeSampledBitmapFromFile(thumbnailFile, size, size)
                 if (bitmap != null) {
                     thumbnailDetail.thumbnailBitmap = bitmap.asImageBitmap()
+                }else {
+                    thumbnailDetail.thumbnailError = true
                 }
             } else {
                 val bitmap = homeNetworkDataSource.downloadImage(thumbnailDetail.getUrl())
@@ -56,6 +58,8 @@ class HomeRepository @Inject constructor(
                     val scaledBitmap = Bitmap.createScaledBitmap(bitmap, size, size, true)
                     homeLocalDataSource.saveThumbnail(thumbnailDetail.getThumbnailFileName(), bitmap)
                     thumbnailDetail.thumbnailBitmap = scaledBitmap.asImageBitmap()
+                }else{
+                    thumbnailDetail.thumbnailError = true
                 }
             }
             thumbnailDetail.thumbnailBitmap

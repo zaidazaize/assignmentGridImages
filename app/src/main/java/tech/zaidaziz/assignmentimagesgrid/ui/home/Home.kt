@@ -13,14 +13,13 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -54,18 +53,11 @@ fun Home(
     when (screenState) {
 
         is HomeScreenState.WithoutInternet -> {
-            if (screenState.mediaCoverage.isEmpty()) {
-                // load images from cache
+            if (screenState.mediaCoverage.isEmpty()) { // load images from cache
             } else {
-                HomeScreen(
-                    mediaCoverages = screenState.mediaCoverage,
-                    onRefresh = {
-                        homeViewModel.refreshMediaCoverages()
-                    },
-                    loadImage = homeViewModel::getThumbnail,
-                    scope = scope,
-                    noInternet = true
-                )
+                HomeScreen(mediaCoverages = screenState.mediaCoverage, onRefresh = {
+                    homeViewModel.refreshMediaCoverages()
+                }, loadImage = homeViewModel::getThumbnail, scope = scope, noInternet = true)
             }
 
 
@@ -80,15 +72,12 @@ fun Home(
             }
             if (screenState.isLoading) {
                 ShowLoading()
+            } else if (screenState.error != null && screenState.mediaCoverage.isEmpty()) {
+                ShowError(error = screenState.error!!.message ?: "")
             } else {
-                HomeScreen(
-                    mediaCoverages = screenState.mediaCoverage,
-                    onRefresh = {
-                        homeViewModel.refreshMediaCoverages()
-                    },
-                    loadImage = homeViewModel::getThumbnail,
-                    scope = scope
-                )
+                HomeScreen(mediaCoverages = screenState.mediaCoverage, onRefresh = {
+                    homeViewModel.refreshMediaCoverages()
+                }, loadImage = homeViewModel::getThumbnail, scope = scope)
             }
         }
 
@@ -99,15 +88,23 @@ fun Home(
 
 @Composable
 fun ShowLoading() {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+    Column(modifier = Modifier.fillMaxSize(),
+           verticalArrangement = Arrangement.Center,
+           horizontalAlignment = Alignment.CenterHorizontally) {
         CircularProgressIndicator()
     }
 }
 
+@Composable
+fun ShowError(
+    error: String
+) {
+    Column(modifier = Modifier.fillMaxSize(),
+           verticalArrangement = Arrangement.Center,
+           horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = if (error.isEmpty()) "An error occurred" else error)
+    }
+}
 
 @Composable
 fun HomeScreen(
@@ -117,45 +114,41 @@ fun HomeScreen(
     scope: CoroutineScope,
     noInternet: Boolean = false
 ) {
-    val size = remember { mutableStateOf(0) }
+    val size = remember { mutableIntStateOf(0) }
 
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(3),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-        horizontalArrangement = Arrangement.Absolute.SpaceEvenly,
-        modifier = Modifier
-            .fillMaxSize()
-            .onSizeChanged {
-                size.value = it.width / 3
-            }
-            ,state = rememberLazyGridState(),
-        content = {
-            if (noInternet) {
-                item(span = { GridItemSpan(3) }) {
-                    Text(
-                        text = "No Internet Connection",
-                        modifier = Modifier
-                            .padding(vertical = 4.dp)
-                            .fillMaxWidth()
-                            .background(Color.Red),
-                        color = Color.Black,
-                        textAlign = TextAlign.Center,
-                    )
+    LazyVerticalGrid(columns = GridCells.Fixed(3),
+                     verticalArrangement = Arrangement.spacedBy(4.dp),
+                     horizontalArrangement = Arrangement.Absolute.SpaceEvenly,
+                     modifier = Modifier
+                         .fillMaxSize()
+                         .onSizeChanged {
+                             size.intValue = it.width / 3
+                         },
+                     state = rememberLazyGridState(),
+                     content = {
+                         if (noInternet) {
+                             item(span = { GridItemSpan(3) }) {
+                                 Text(
+                                     text = "No Internet Connection",
+                                     modifier = Modifier
+                                         .padding(vertical = 4.dp)
+                                         .fillMaxWidth()
+                                         .background(Color.Red),
+                                     color = Color.Black,
+                                     textAlign = TextAlign.Center,
+                                 )
 
-                }
+                             }
 
-            }
-            items(mediaCoverages.size) { index ->
-                LoadImage(
-                    imageModel = mediaCoverages[index],
-                    loadImage = loadImage,
-                    size = size.value,
-                    noInternet = noInternet
-                )
-                //                val url = mediaCoverages[index].thumbnail.getUrl()
-                //                AsyncImage(model =url , contentDescription = mediaCoverages[index].title)
-            }
-        }
+                         }
+                         items(mediaCoverages.size) { index ->
+                             LoadImage(imageModel = mediaCoverages[index],
+                                       loadImage = loadImage,
+                                       size = size.intValue,
+                                       noInternet = noInternet) //                val url = mediaCoverages[index].thumbnail.getUrl()
+                             //                AsyncImage(model =url , contentDescription = mediaCoverages[index].title)
+                         }
+                     }
 
     )
 }
@@ -173,51 +166,23 @@ fun LoadImage(
 
     DisposableEffect(imageModel.id) {
         var job: Job? = null
-        if (imageModel.thumbnail.thumbnailBitmap == null && noInternet.not())
-            job = scope.launch {
-                val isdown = loadImage(imageModel, size)
-                if (isdown.not()) {
-                    return@launch
-                }
-                imageBitmap.value = imageModel.thumbnail.thumbnailBitmap
+        if (imageModel.thumbnail.thumbnailBitmap == null && noInternet.not()) job = scope.launch {
+            val isdown = loadImage(imageModel, size)
+            if (isdown.not()) {
+                return@launch
             }
+            imageBitmap.value = imageModel.thumbnail.thumbnailBitmap
+        }
         onDispose {
             job?.cancel()
         }
     }
     Image(painter = if (imageBitmap.value != null) BitmapPainter(imageBitmap.value!!)
-    else if (noInternet) painterResource(id = R.drawable.baseline_broken_image_24)
+    else if (noInternet || imageModel.thumbnail.thumbnailError) painterResource(id = R.drawable.baseline_broken_image_24)
     else painterResource(id = R.drawable.baseline_image_24),
           contentDescription = null,
           modifier = Modifier
               .aspectRatio(1f)
               .fillMaxSize())
-
-    //    if (imageBitmap.value != null) {
-    //        Image(
-    //            painter = BitmapPainter(imageBitmap.value!!),
-    //            contentScale = ContentScale.Crop,
-    //            contentDescription = null,
-    //            modifier = Modifier
-    //                .fillMaxSize()
-    //                .aspectRatio(1f)
-    //        )
-    //    } else if (noInternet) {
-    //        Image(
-    //            painter = painterResource(id = R.drawable.baseline_broken_image_24),
-    //            contentDescription = null,
-    //            modifier = Modifier
-    //                .fillMaxSize()
-    //                .aspectRatio(1f)
-    //        )
-    //    } else {
-    //        Image(
-    //            painter = painterResource(id = R.drawable.baseline_image_24),
-    //            contentDescription = null,
-    //            modifier = Modifier
-    //                .fillMaxSize()
-    //                .aspectRatio(1f)
-    //        )
-    //    }
 
 }

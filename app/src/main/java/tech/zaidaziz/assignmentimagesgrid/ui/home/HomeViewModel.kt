@@ -20,16 +20,19 @@ sealed interface HomeScreenState {
 
     val isLoading: Boolean
     val mediaCoverage: List<ImageModel>
+    val error: Exception?
 
     data class WithoutInternet(
         val message: String,
         override val isLoading: Boolean,
-        override val mediaCoverage: List<ImageModel>
+        override val mediaCoverage: List<ImageModel>,
+        override val error: Exception? = null
     ) : HomeScreenState
 
     data class WithInternet(
         override val isLoading: Boolean,
-        override val mediaCoverage: List<ImageModel>
+        override val mediaCoverage: List<ImageModel>,
+        override val error: Exception? = null
     ) : HomeScreenState
 
 }
@@ -38,6 +41,7 @@ data class ViewModalScreenState(
     val isLoading: Boolean = true,
     val internetAvailable: Boolean = false,
     val mediaCoverage: List<ImageModel> = emptyList(),
+    val error: Exception? = null
 ) {
 
     fun toUiState(): HomeScreenState {
@@ -45,7 +49,8 @@ data class ViewModalScreenState(
             true -> {
                 HomeScreenState.WithInternet(
                     isLoading = isLoading,
-                    mediaCoverage = mediaCoverage
+                    mediaCoverage = mediaCoverage,
+                    error = error
                 )
             }
 
@@ -53,7 +58,8 @@ data class ViewModalScreenState(
                 HomeScreenState.WithoutInternet(
                     message = "No internet connection",
                     isLoading = false,
-                    mediaCoverage = mediaCoverage
+                    mediaCoverage = mediaCoverage,
+                    error = error
                 )
             }
         }
@@ -85,12 +91,6 @@ class HomeViewModel @Inject constructor(
         started = SharingStarted.Eagerly,
         initialValue = _viewModalScreenState.value.toUiState())
 
-//    val isOnline =
-//        connectivityObserver.isOnline().stateIn(viewModelScope, SharingStarted.Eagerly, true).also {
-//            _viewModalScreenState.value = _viewModalScreenState.value.copy(
-//                internetAvailable = it.value
-//            )
-//        }
 
     fun getMediaCoverages() {
         if (isOnline.value.not()) {
@@ -108,15 +108,19 @@ class HomeViewModel @Inject constructor(
             try {
                 _mediaCoverages.value = homeRepository.getMediaCoverages()
             } catch (e: Exception) {
+                _viewModalScreenState.value = _viewModalScreenState.value.copy(
+                    isLoading = false,
+                    error = e
+                )
                 return@launch
             }
 
             _viewModalScreenState.value = _viewModalScreenState.value.copy(
                 mediaCoverage = _mediaCoverages.value,
-                isLoading = false
+                isLoading = false,
+                error = null
             )
 
-            Log.d("HomeViewModel", "getMediaCoverages: ${_mediaCoverages.value}")
         }
     }
 
