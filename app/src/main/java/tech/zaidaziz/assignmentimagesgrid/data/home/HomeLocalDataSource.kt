@@ -74,7 +74,8 @@ class HomeLocalDataSource @Inject constructor(
                 }
                 //                _localThumbnailFiles =
                 //                    _localThumbnailFiles + fileName
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Log.d("HomeLocalDataSource", "saveThumbnail:${e.message}")
                 // do nothing for now
             }
         }

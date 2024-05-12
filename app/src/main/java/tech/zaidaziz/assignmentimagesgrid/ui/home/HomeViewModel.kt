@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import tech.zaidaziz.assignmentimagesgrid.data.home.HomeRepository
 import tech.zaidaziz.assignmentimagesgrid.data.home.models.ImageModel
+import tech.zaidaziz.assignmentimagesgrid.data.home.models.Result
 import tech.zaidaziz.assignmentimagesgrid.data.home.models.ThumbnailDetail
 import tech.zaidaziz.assignmentimagesgrid.util.ConnectivityObserver
 import javax.inject.Inject
@@ -21,19 +22,21 @@ sealed interface HomeScreenState {
     val isLoading: Boolean
     val mediaCoverage: List<ImageModel>
     val error: Exception?
+    val localThumbnailDetails: List<ThumbnailDetail>
 
     data class WithoutInternet(
         val message: String,
         override val isLoading: Boolean,
         override val mediaCoverage: List<ImageModel>,
         override val error: Exception? = null,
-        val localThumbnailDetails: List<ThumbnailDetail> = emptyList()
+        override val localThumbnailDetails: List<ThumbnailDetail> = emptyList(),
     ) : HomeScreenState
 
     data class WithInternet(
         override val isLoading: Boolean,
         override val mediaCoverage: List<ImageModel>,
-        override val error: Exception? = null
+        override val error: Exception? = null,
+        override val localThumbnailDetails: List<ThumbnailDetail> = emptyList(),
     ) : HomeScreenState
 
 }
@@ -52,7 +55,8 @@ data class ViewModalScreenState(
                 HomeScreenState.WithInternet(
                     isLoading = isLoading,
                     mediaCoverage = mediaCoverage,
-                    error = error
+                    error = error,
+                    localThumbnailDetails = localThumbnailDetails
                 )
             }
 
@@ -77,7 +81,6 @@ class HomeViewModel @Inject constructor(
 ) : ViewModel() {
 
     val _mediaCoverages: MutableState<List<ImageModel>> = mutableStateOf(emptyList())
-    val mediaCoverages = _mediaCoverages
 
     var isOnline = mutableStateOf(false)
 
@@ -109,7 +112,34 @@ class HomeViewModel @Inject constructor(
                 isLoading = true
             )
             try {
-                _mediaCoverages.value = homeRepository.getMediaCoverages()
+                when (val result = homeRepository.getMediaCoverages()) {
+                    is Result.Success -> {
+                        _mediaCoverages.value = result.data
+                        _viewModalScreenState.value = _viewModalScreenState.value.copy(
+                            isLoading = false,
+                            mediaCoverage = result.data,
+                            error = null,
+                            localThumbnailDetails = emptyList()
+                        )
+                    }
+
+                    is Result.Error -> {
+                        _viewModalScreenState.value = _viewModalScreenState.value.copy(
+                            isLoading = false,
+                            error = result.exception,
+                        )
+                        getLocalThumbnailDetails()
+                        return@launch
+                    }
+
+                    is Result.Loading -> {
+                        _viewModalScreenState.value = _viewModalScreenState.value.copy(
+                            isLoading = true,
+                            error = null
+                        )
+                        return@launch
+                    }
+                }
             } catch (e: Exception) {
                 _viewModalScreenState.value = _viewModalScreenState.value.copy(
                     isLoading = false,
@@ -117,12 +147,6 @@ class HomeViewModel @Inject constructor(
                 )
                 return@launch
             }
-
-            _viewModalScreenState.value = _viewModalScreenState.value.copy(
-                mediaCoverage = _mediaCoverages.value,
-                isLoading = false,
-                error = null
-            )
 
         }
     }
@@ -155,7 +179,7 @@ class HomeViewModel @Inject constructor(
                 isOnline.value = it
                 if (it.not()) {
                     getLocalThumbnailDetails()
-                } else {
+                } else if(_mediaCoverages.value.isEmpty()) {
                     getMediaCoverages()
                 }
             }

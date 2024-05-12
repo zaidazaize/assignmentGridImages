@@ -43,6 +43,10 @@ fun Home(
     Log.d("HomeScreenState", "ScreenState: $screenState")
     val isInternet = homeViewModel.isOnline.value
 
+    val apiFetchError = when(screenState){
+        is HomeScreenState.WithInternet -> (screenState as HomeScreenState.WithInternet).error != null
+        else -> false
+    }
 
     Scaffold(topBar = {
         Column {
@@ -62,6 +66,16 @@ fun Home(
                     textAlign = TextAlign.Center,
                 )
 
+            }else if(apiFetchError){
+                Text(
+                    text = "Error fetching data from the server",
+                    modifier = Modifier
+                        .padding(top = 4.dp)
+                        .fillMaxWidth()
+                        .background(Color.Red),
+                    color = Color.Black,
+                    textAlign = TextAlign.Center,
+                )
             }
         }
     }
@@ -104,7 +118,15 @@ private fun WithInternetScreen(
         }
 
         screenState.error != null && screenState.mediaCoverage.isEmpty() -> {
+            if(screenState.localThumbnailDetails.isNotEmpty()){
+                HomeScreenForLocalCaches(mediaCoverages = screenState.localThumbnailDetails,
+                                         loadImage = homeViewModel::getThumbnail,
+                                         scope = scope,
+                                         modifier = Modifier.padding(innerPadding))
+            }
+            else
             ShowError(error = screenState.error!!.message ?: "")
+
         }
 
         else -> {

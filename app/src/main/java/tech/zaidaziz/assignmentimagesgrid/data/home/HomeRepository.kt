@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import tech.zaidaziz.assignmentimagesgrid.data.home.models.ImageModel
+import tech.zaidaziz.assignmentimagesgrid.data.home.models.Result
 import tech.zaidaziz.assignmentimagesgrid.data.home.models.ThumbnailDetail
 import java.io.File
 import javax.inject.Inject
@@ -22,17 +23,21 @@ class HomeRepository @Inject constructor(
     //    suspend fun getMediaCoveragesResponse(): Result<List<ImageModel>>{
     //
     //    }
-    suspend fun getMediaCoverages(): List<ImageModel> {
-        if (mediaCoverages == null) {
-            withContext(Dispatchers.IO) {
+    suspend fun getMediaCoverages(): Result<List<ImageModel>> {
+       return  if (mediaCoverages == null) {
+           val result =  withContext(Dispatchers.IO) {
                 val response = homeNetworkDataSource.getMediaCoverages()
                 if (response.isSuccessful) {
                     mediaCoverages = response.body()
-                    Log.d("HomeRepository", "getMediaCoverages: ${mediaCoverages?.size}")
+                    Result.Success(mediaCoverages!!)
+                }else{
+                    Result.Error(Exception(response.message()))
                 }
             }
+           result
+        }else{
+             Result.Success(mediaCoverages!!)
         }
-        return mediaCoverages ?: emptyList()
     }
 
     suspend fun getThumbNail(thumbnailDetail: ThumbnailDetail, sizeGot: Int): ImageBitmap? {

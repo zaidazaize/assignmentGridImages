@@ -20,14 +20,21 @@ data class ThumbnailDetail(
     @Json(name = "aspectRatio")
     val aspectRatio: Double = 0.0
 ) {
+
     @Transient
-    var thumbnailBitmap : ImageBitmap? = null
+    var thumbnailBitmap: ImageBitmap? = null
+        set(value) {
+            field = value
+            thumbnailError = false
+        }
+
     fun getUrl(): String {
         return "$domain/$basePath/0/$key"
 
     }
+
     @Transient
-    var thumbnailError : Boolean = false
+    var thumbnailError: Boolean = false
     fun getThumbnailFileName(): String {
         return "$id.jpg"
     }
