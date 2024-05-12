@@ -21,6 +21,7 @@ data class ThumbnailDetail(
     val aspectRatio: Double = 0.0
 ) {
 
+    // keeps cache of the thumbnail bitmap
     @Transient
     var thumbnailBitmap: ImageBitmap? = null
         set(value) {
