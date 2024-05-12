@@ -37,6 +37,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import tech.zaidaziz.assignmentimagesgrid.R
 import tech.zaidaziz.assignmentimagesgrid.data.home.models.ImageModel
+import tech.zaidaziz.assignmentimagesgrid.data.home.models.ThumbnailDetail
 
 @Composable
 fun Home(
@@ -54,6 +55,10 @@ fun Home(
 
         is HomeScreenState.WithoutInternet -> {
             if (screenState.mediaCoverage.isEmpty()) { // load images from cache
+                HomeScreenForLocalCaches(mediaCoverages = (screenState as HomeScreenState.WithoutInternet).localThumbnailDetails,
+                                         loadImage = homeViewModel::getThumbnail,
+                                         scope = scope)
+
             } else {
                 HomeScreen(mediaCoverages = screenState.mediaCoverage, onRefresh = {
                     homeViewModel.refreshMediaCoverages()
@@ -110,7 +115,7 @@ fun ShowError(
 fun HomeScreen(
     mediaCoverages: List<ImageModel>,
     onRefresh: () -> Unit,
-    loadImage: suspend (ImageModel, Int) -> Boolean,
+    loadImage: suspend (ThumbnailDetail, Int) -> Boolean,
     scope: CoroutineScope,
     noInternet: Boolean = false
 ) {
@@ -124,61 +129,99 @@ fun HomeScreen(
                          .onSizeChanged {
                              size.intValue = it.width / 3
                          },
-                     state = rememberLazyGridState(),
-                     content = {
-                         if (noInternet) {
-                             item(span = { GridItemSpan(3) }) {
-                                 Text(
-                                     text = "No Internet Connection",
-                                     modifier = Modifier
-                                         .padding(vertical = 4.dp)
-                                         .fillMaxWidth()
-                                         .background(Color.Red),
-                                     color = Color.Black,
-                                     textAlign = TextAlign.Center,
-                                 )
+                     state = rememberLazyGridState()) {
+        if (noInternet) {
+            item(span = { GridItemSpan(3) }) {
+                Text(
+                    text = "No Internet Connection",
+                    modifier = Modifier
+                        .padding(vertical = 4.dp)
+                        .fillMaxWidth()
+                        .background(Color.Red),
+                    color = Color.Black,
+                    textAlign = TextAlign.Center,
+                )
 
-                             }
+            }
 
-                         }
-                         items(mediaCoverages.size) { index ->
-                             LoadImage(imageModel = mediaCoverages[index],
-                                       loadImage = loadImage,
-                                       size = size.intValue,
-                                       noInternet = noInternet) //                val url = mediaCoverages[index].thumbnail.getUrl()
-                             //                AsyncImage(model =url , contentDescription = mediaCoverages[index].title)
-                         }
-                     }
+        }
+        items(mediaCoverages.size) { index ->
+            LoadImage(thumbnailModel = mediaCoverages[index].thumbnail,
+                      loadImage = loadImage,
+                      size = size.intValue,
+                      noInternet = noInternet,
+                      onclick = {})
+        }
+    }
+}
 
-    )
+@Composable
+fun HomeScreenForLocalCaches(
+    mediaCoverages: List<ThumbnailDetail>,
+    loadImage: suspend (ThumbnailDetail, Int) -> Boolean,
+    scope: CoroutineScope,
+) {
+    val size = remember { mutableIntStateOf(0) }
+
+    LazyVerticalGrid(columns = GridCells.Fixed(3),
+                     verticalArrangement = Arrangement.spacedBy(4.dp),
+                     horizontalArrangement = Arrangement.Absolute.SpaceEvenly,
+                     modifier = Modifier
+                         .fillMaxSize()
+                         .onSizeChanged {
+                             size.intValue = it.width / 3
+                         },
+                     state = rememberLazyGridState()) {
+        item(span = { GridItemSpan(3) }) {
+            Text(
+                text = "No Internet Connection",
+                modifier = Modifier
+                    .padding(vertical = 4.dp)
+                    .fillMaxWidth()
+                    .background(Color.Red),
+                color = Color.Black,
+                textAlign = TextAlign.Center,
+            )
+
+
+        }
+        items(mediaCoverages.size) { index ->
+            LoadImage(thumbnailModel = mediaCoverages[index],
+                      loadImage = loadImage,
+                      size = size.intValue,
+                      noInternet = true,
+                      onclick = {})
+        }
+    }
 }
 
 @Composable
 fun LoadImage(
-    imageModel: ImageModel,
-    loadImage: suspend (ImageModel, Int) -> Boolean,
+    thumbnailModel: ThumbnailDetail,
+    loadImage: suspend (ThumbnailDetail, Int) -> Boolean,
     size: Int,
     noInternet: Boolean,
-) {
-    val imageBitmap = remember { mutableStateOf(imageModel.thumbnail.thumbnailBitmap) }
+    onclick: () -> Unit,
+) { // TODO: add onclick to open the image in a new screen or dialog
+    val imageBitmap = remember { mutableStateOf(thumbnailModel.thumbnailBitmap) }
 
     val scope = rememberCoroutineScope()
 
-    DisposableEffect(imageModel.id) {
+    DisposableEffect(thumbnailModel.id) {
         var job: Job? = null
-        if (imageModel.thumbnail.thumbnailBitmap == null && noInternet.not()) job = scope.launch {
-            val isdown = loadImage(imageModel, size)
+        if (thumbnailModel.thumbnailBitmap == null) job = scope.launch {
+            val isdown = loadImage(thumbnailModel, size)
             if (isdown.not()) {
                 return@launch
             }
-            imageBitmap.value = imageModel.thumbnail.thumbnailBitmap
+            imageBitmap.value = thumbnailModel.thumbnailBitmap
         }
         onDispose {
             job?.cancel()
         }
     }
     Image(painter = if (imageBitmap.value != null) BitmapPainter(imageBitmap.value!!)
-    else if (noInternet || imageModel.thumbnail.thumbnailError) painterResource(id = R.drawable.baseline_broken_image_24)
+    else if (noInternet || thumbnailModel.thumbnailError) painterResource(id = R.drawable.baseline_broken_image_24)
     else painterResource(id = R.drawable.baseline_image_24),
           contentDescription = null,
           modifier = Modifier

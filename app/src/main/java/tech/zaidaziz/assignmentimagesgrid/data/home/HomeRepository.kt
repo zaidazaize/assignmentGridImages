@@ -19,9 +19,9 @@ class HomeRepository @Inject constructor(
 
     private var mediaCoverages: List<ImageModel>? = null
 
-//    suspend fun getMediaCoveragesResponse(): Result<List<ImageModel>>{
-//
-//    }
+    //    suspend fun getMediaCoveragesResponse(): Result<List<ImageModel>>{
+    //
+    //    }
     suspend fun getMediaCoverages(): List<ImageModel> {
         if (mediaCoverages == null) {
             withContext(Dispatchers.IO) {
@@ -41,30 +41,40 @@ class HomeRepository @Inject constructor(
         }
         return withContext(Dispatchers.IO) {
             val size = if (sizeGot <= 0) 480 else sizeGot
-            val thumbnailFile = homeLocalDataSource.getSavedThumbnail(thumbnailDetail)
 
-            Log.d("HomeRepository", "thumbnailExists: ${thumbnailFile}")
+            val thumbnailFile =
+                homeLocalDataSource.getSavedThumbnail(thumbnailDetail.getThumbnailFileName())
 
             if (thumbnailFile != null) {
                 val bitmap = decodeSampledBitmapFromFile(thumbnailFile, size, size)
                 if (bitmap != null) {
                     thumbnailDetail.thumbnailBitmap = bitmap.asImageBitmap()
-                }else {
+                } else {
                     thumbnailDetail.thumbnailError = true
                 }
             } else {
                 val bitmap = homeNetworkDataSource.downloadImage(thumbnailDetail.getUrl())
                 if (bitmap != null) {
                     val scaledBitmap = Bitmap.createScaledBitmap(bitmap, size, size, true)
-                    homeLocalDataSource.saveThumbnail(thumbnailDetail.getThumbnailFileName(), bitmap)
+                    homeLocalDataSource.saveThumbnail(thumbnailDetail.getThumbnailFileName(),
+                                                      bitmap)
                     thumbnailDetail.thumbnailBitmap = scaledBitmap.asImageBitmap()
-                }else{
+                } else {
                     thumbnailDetail.thumbnailError = true
                 }
             }
             thumbnailDetail.thumbnailBitmap
         }
     }
+
+    suspend fun getAllLocalThumbnailFileNames(): List<ThumbnailDetail> {
+        return withContext(Dispatchers.IO) {
+            homeLocalDataSource.getLocalThumbnailFileNames().map {
+                ThumbnailDetail(id = it.split(".")[0])
+            }
+        }
+    }
+
     fun refreshMediaCoverages() {
         mediaCoverages = null
     }

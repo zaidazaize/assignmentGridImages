@@ -8,7 +8,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import tech.zaidaziz.assignmentimagesgrid.MainApplication
 import tech.zaidaziz.assignmentimagesgrid.data.di.StorageModule.Companion.LOCAL_THUMBNAIL_DIR
-import tech.zaidaziz.assignmentimagesgrid.data.home.models.ThumbnailDetail
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Named
@@ -23,13 +22,10 @@ class HomeLocalDataSource @Inject constructor(
         (context.applicationContext as MainApplication).applicationScopeCoroutines
 
     private var _localThumbnailFiles: Set<String> = emptySet()
-    fun getSavedThumbnail(thumbnailDetail: ThumbnailDetail): File? {
-        //        if (_localThumbnailFiles.isEmpty()) {
-        //            return null
-        //        }
-        //        return if (thumbnailDetail.id in _localThumbnailFiles)
+    fun getSavedThumbnail(thumbnailFileName: String): File? {
+        // TODO: for more high performance utilize the _localThumbnailFiles set
         return try {
-            val thumbnailFile = File(thumbnailDir, thumbnailDetail.getThumbnailFileName())
+            val thumbnailFile = File(thumbnailDir, thumbnailFileName)
             if (thumbnailFile.exists()) {
                 thumbnailFile
             } else null
@@ -53,6 +49,16 @@ class HomeLocalDataSource @Inject constructor(
         updateLocalThumbnailFiles()
     }
 
+    suspend fun getLocalThumbnailFileNames(): List<String> {
+        return try {
+            val files = thumbnailDir.listFiles()
+            files?.map { it.name } ?: emptyList()
+        } catch (e: Exception) {
+            Log.e("HomeLocalDataSource", "getLocalThumbnailFilesNames: ", e)
+            emptyList()
+        }
+    }
+
 
     // global scope is used here because the thumbnail is saved in the cache directory
     fun saveThumbnail(fileName: String, bitmap: Bitmap) {
@@ -66,8 +72,8 @@ class HomeLocalDataSource @Inject constructor(
                     bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fileOut)
                     // TODO: create the viewSize cache
                 }
-                _localThumbnailFiles =
-                    _localThumbnailFiles + fileName
+                //                _localThumbnailFiles =
+                //                    _localThumbnailFiles + fileName
             } catch (_: Exception) {
                 // do nothing for now
             }

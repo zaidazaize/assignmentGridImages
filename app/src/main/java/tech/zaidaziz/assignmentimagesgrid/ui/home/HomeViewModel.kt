@@ -1,6 +1,5 @@
 package tech.zaidaziz.assignmentimagesgrid.ui.home
 
-import android.util.Log
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -13,6 +12,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import tech.zaidaziz.assignmentimagesgrid.data.home.HomeRepository
 import tech.zaidaziz.assignmentimagesgrid.data.home.models.ImageModel
+import tech.zaidaziz.assignmentimagesgrid.data.home.models.ThumbnailDetail
 import tech.zaidaziz.assignmentimagesgrid.util.ConnectivityObserver
 import javax.inject.Inject
 
@@ -26,7 +26,8 @@ sealed interface HomeScreenState {
         val message: String,
         override val isLoading: Boolean,
         override val mediaCoverage: List<ImageModel>,
-        override val error: Exception? = null
+        override val error: Exception? = null,
+        val localThumbnailDetails: List<ThumbnailDetail> = emptyList()
     ) : HomeScreenState
 
     data class WithInternet(
@@ -41,7 +42,8 @@ data class ViewModalScreenState(
     val isLoading: Boolean = true,
     val internetAvailable: Boolean = false,
     val mediaCoverage: List<ImageModel> = emptyList(),
-    val error: Exception? = null
+    val error: Exception? = null,
+    val localThumbnailDetails: List<ThumbnailDetail> = emptyList()
 ) {
 
     fun toUiState(): HomeScreenState {
@@ -59,7 +61,8 @@ data class ViewModalScreenState(
                     message = "No internet connection",
                     isLoading = false,
                     mediaCoverage = mediaCoverage,
-                    error = error
+                    error = error,
+                    localThumbnailDetails = localThumbnailDetails
                 )
             }
         }
@@ -128,17 +131,33 @@ class HomeViewModel @Inject constructor(
         homeRepository.refreshMediaCoverages()
     }
 
-    suspend fun getThumbnail(imageModel: ImageModel, size: Int): Boolean {
-        return homeRepository.getThumbNail(imageModel.thumbnail, size) != null
+    suspend fun getThumbnail(thumbnailDetails: ThumbnailDetail, size: Int): Boolean {
+        return homeRepository.getThumbNail(thumbnailDetails, size) != null
     }
 
-    init{
-        viewModelScope.launch{
+    private suspend fun getLocalThumbnailDetails() {
+        viewModelScope.launch {
+            val localThumbnailDetails = homeRepository.getAllLocalThumbnailFileNames()
+            _viewModalScreenState.value = _viewModalScreenState.value.copy(
+                localThumbnailDetails = localThumbnailDetails,
+                isLoading = false,
+                internetAvailable = isOnline.value
+            )
+        }
+    }
+
+    init {
+        viewModelScope.launch {
             connectivityObserver.isOnline().collect {
                 _viewModalScreenState.value = _viewModalScreenState.value.copy(
                     internetAvailable = it
                 )
                 isOnline.value = it
+                if (it.not()) {
+                    getLocalThumbnailDetails()
+                } else {
+                    getMediaCoverages()
+                }
             }
         }
     }
