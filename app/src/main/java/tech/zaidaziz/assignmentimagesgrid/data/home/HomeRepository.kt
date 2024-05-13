@@ -5,13 +5,17 @@ import android.graphics.BitmapFactory
 import android.util.Log
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.navigation.Navigator
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import tech.zaidaziz.assignmentimagesgrid.data.di.DispatcherModule
 import tech.zaidaziz.assignmentimagesgrid.data.home.models.ImageModel
 import tech.zaidaziz.assignmentimagesgrid.data.home.models.Result
 import tech.zaidaziz.assignmentimagesgrid.data.home.models.ThumbnailDetail
 import java.io.File
 import javax.inject.Inject
+import javax.inject.Named
 
 interface HomeRepository {
     //    suspend fun getMediaCoveragesResponse(): Result<List<ImageModel>>{
@@ -28,16 +32,18 @@ interface HomeRepository {
 class HomeRepositoryImpl @Inject constructor(
     private val homeNetworkDataSource: HomeNetworkDataSource,
     private val homeLocalDataSource: HomeLocalDataSource,
+    @Named(DispatcherModule.IO_DISPATCHER)
+    private val ioDispatcher:CoroutineDispatcher = Dispatchers.IO
 ) : HomeRepository {
 
-    private var mediaCoverages: List<ImageModel>? = null
+     var mediaCoverages: List<ImageModel>? = null
 
     //    suspend fun getMediaCoveragesResponse(): Result<List<ImageModel>>{
     //
     //    }
     override suspend fun getMediaCoverages(): Result<List<ImageModel>> {
        return  if (mediaCoverages == null) {
-           val result =  withContext(Dispatchers.IO) {
+           val result =  withContext(ioDispatcher) {
                 val response = homeNetworkDataSource.getMediaCoverages()
                 if (response.isSuccessful) {
                     mediaCoverages = response.body()

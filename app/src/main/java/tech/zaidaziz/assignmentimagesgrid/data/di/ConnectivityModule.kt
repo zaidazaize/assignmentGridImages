@@ -24,7 +24,7 @@ abstract class ConnectivityModule {
     abstract fun bindHomeLocalDataSource(homeLocalDataSourceImpl: HomeLocalDataSourceImpl): HomeLocalDataSource
 
     @Binds
-    abstract fun bindHomeLocalDataSource(homeNetworkDataSourceImpl: HomeNetworkDataSourceImpl): HomeNetworkDataSource
+    abstract fun bindHomeNetworkDataSource(homeNetworkDataSourceImpl: HomeNetworkDataSourceImpl): HomeNetworkDataSource
 
     @Binds
     abstract fun bindHomeRepository(homeRepositoryImpl: HomeRepositoryImpl): HomeRepository
