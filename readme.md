@@ -15,6 +15,8 @@
 This Android application is designed to showcase a grid of images downloaded from the internet. It
 features image downloading, caching, and lazy loading functionalities.
 
+[Screen_recording_20240515_212412.webm](https://github.com/zaidazaize/assignmentGridImages/assets/67843799/595f48ca-3d04-4d12-a585-d49b67f692d9)
+
 ## Features
 - **API Integration**: The app integrates with an external API to fetch the details of the images.
 - **Image Downloading**: Based on the API response, the app downloads the images from the provided
