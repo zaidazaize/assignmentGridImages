@@ -77,8 +77,6 @@ class HomeRepositoryImplTest {
         assert((result as Result.Success).data == imageList)
     }
 
-
-
     fun getListOfImages(): List<ImageModel> {
         return listOf(
             ImageModel(

@@ -3,6 +3,7 @@ package tech.zaidaziz.assignmentimagesgrid.data.home
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
+import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.navigation.Navigator
@@ -36,7 +37,8 @@ class HomeRepositoryImpl @Inject constructor(
     private val ioDispatcher:CoroutineDispatcher = Dispatchers.IO
 ) : HomeRepository {
 
-     var mediaCoverages: List<ImageModel>? = null
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+      var mediaCoverages: List<ImageModel>? = null
 
     //    suspend fun getMediaCoveragesResponse(): Result<List<ImageModel>>{
     //

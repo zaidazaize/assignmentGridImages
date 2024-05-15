@@ -1,7 +1,9 @@
 package tech.zaidaziz.assignmentimagesgrid.ui.home
 
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -74,6 +76,11 @@ data class ViewModalScreenState(
     }
 }
 
+data class DialogClickedState(
+    val visible: Boolean = false,
+    val imageModel: ImageModel? = null
+)
+
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val homeRepository: HomeRepository,
@@ -91,6 +98,12 @@ class HomeViewModel @Inject constructor(
             mediaCoverage = emptyList()
         )
     )
+    private val  _dialogClickedState = mutableStateOf(DialogClickedState())
+    val dialogClickedState: State<DialogClickedState> = _dialogClickedState
+
+    fun updateDialogState(dialogClicked: Boolean, imageModel: ImageModel? = null) {
+        _dialogClickedState.value = DialogClickedState(dialogClicked, imageModel)
+    }
 
     val homeScreenState = _viewModalScreenState.map(ViewModalScreenState::toUiState).stateIn(
         viewModelScope,
@@ -157,6 +170,9 @@ class HomeViewModel @Inject constructor(
 
     suspend fun getThumbnail(thumbnailDetails: ThumbnailDetail, size: Int): Boolean {
         return homeRepository.getThumbNail(thumbnailDetails, size) != null
+    }
+    suspend fun loadImage(thumbnailDetails: ThumbnailDetail, size: Int): ImageBitmap? {
+        return homeRepository.getThumbNail(thumbnailDetails, size)
     }
 
     private suspend fun getLocalThumbnailDetails() {
